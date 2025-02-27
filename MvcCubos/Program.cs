@@ -16,6 +16,17 @@ builder.Services.AddTransient<RepositoryCubos>();
 builder.Services.AddSingleton<HelperPathProvider>();
 builder.Services.AddHttpContextAccessor();
 /*****************************************************************************************************************************************/
+
+// Configurar la sesión
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+/*****************************************************************************************************************************************/
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -30,6 +41,9 @@ app.UseHttpsRedirection();
 /**********************************************************************************************************************************************/
 app.UseStaticFiles();
 /**********************************************************************************************************************************************/
+// Habilitar la sesión
+app.UseSession(); // Habilitar el middleware de sesión
+
 app.UseRouting();
 
 app.UseAuthorization();
@@ -40,6 +54,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();

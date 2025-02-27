@@ -8,6 +8,7 @@
 
 <p>
     <a asp-action="Create" class="btn btn-primary">Nuevo Cubo</a>
+    <a asp-action="Favoritos" class="btn btn-primary">Ver favoritos</a>
 </p>
 
 <div class="container">
@@ -22,6 +23,8 @@
                         <h6 class="card-subtitle text-muted">@item.Marca - @item.Modelo</h6>
                         <p class="card-text mt-2"><strong>Precio:</strong> @item.Precio €</p>
                         <div class="d-flex justify-content-between">
+
+                            <a asp-action="Index" asp-route-idFavorito="@item.IdCubo" class="btn btn-danger btn-sm">Favoritos</a>
                             <a asp-action="Edit" asp-route-id="@item.IdCubo" class="btn btn-warning btn-sm">Editar</a>
                             <a asp-action="Details" asp-route-id="@item.IdCubo" class="btn btn-info btn-sm">Detalles</a>
                             <a asp-action="Delete" asp-route-id="@item.IdCubo" class="btn btn-danger btn-sm">Eliminar</a>

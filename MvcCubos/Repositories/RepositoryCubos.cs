@@ -48,27 +48,41 @@ namespace MvcCubos.Repositories
             await this.context.SaveChangesAsync();
         }
 
-        public async Task EditCuboAsync(Cubo cubo)
+        public async Task EditCuboAsync(Cubo nuevoCubo)
         {
-            // Buscar el cubo existente en la base de datos
-            var existingCubo = await this.context.Cubos.FindAsync(cubo.IdCubo);
-            if (existingCubo != null)
+            var cubo = await this.context.Cubos.FindAsync(nuevoCubo.IdCubo);
+            if (cubo != null)
             {
-                // Actualizar los datos con los valores recibidos
-                existingCubo.Nombre = cubo.Nombre;
-                existingCubo.Modelo = cubo.Modelo;
-                existingCubo.Marca = cubo.Marca;
-                existingCubo.Precio = cubo.Precio;
+                cubo.Nombre = nuevoCubo.Nombre;
+                cubo.Modelo = nuevoCubo.Modelo;
+                cubo.Marca = nuevoCubo.Marca;
+                cubo.Precio = nuevoCubo.Precio;
 
-                // Solo actualizar la imagen si se ha proporcionado una nueva
-                if (!string.IsNullOrEmpty(cubo.Imagen))
+                if (!string.IsNullOrEmpty(nuevoCubo.Imagen))
                 {
-                    existingCubo.Imagen = cubo.Imagen;
+                    cubo.Imagen = nuevoCubo.Imagen;
                 }
 
-                // Guardar cambios en la base de datos
                 await this.context.SaveChangesAsync();
             }
+        }
+
+        public async Task DeleteCuboAsync(int idCubo)
+        {
+            var cubo = await this.context.Cubos.FindAsync(idCubo);
+            if (cubo != null)
+            {
+                this.context.Cubos.Remove(cubo);
+                await this.context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<List<Cubo>> GetCubosNotSessionAsync(List<Cubo> cubosSession)
+        {
+            var consulta = from datos in this.context.Cubos
+                           where !cubosSession.Contains(datos)
+                           select datos;
+            return await consulta.ToListAsync();
         }
     }
 }

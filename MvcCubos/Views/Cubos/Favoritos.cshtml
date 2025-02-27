@@ -1,0 +1,47 @@
+﻿@{
+    ViewData["Title"] = "Favoritos";
+}
+@{
+    List<Cubo> favoritos = memoryCache.Get<List<Cubo>>("favoritos");
+}
+
+<h1 class="text-center mb-4">Favoritos</h1>
+
+<p>
+    <a asp-action="Index" class="btn btn-secondary">Volver</a>
+</p>
+
+<div class="container">
+    @if (favoritos != null && favoritos.Count() > 0)
+   {
+        <div class="row">
+            @foreach (var item in favoritos)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card shadow-sm">
+                        <img src="~/images/@item.Imagen" class="card-img-top img-fluid" alt="Imagen de @item.Nombre" style="height: 200px; object-fit: contain;">
+                        <div class="card-body">
+                            <h5 class="card-title">@item.Nombre</h5>
+                            <h6 class="card-subtitle text-muted">@item.Marca - @item.Modelo</h6>
+                            <p class="card-text mt-2"><strong>Precio:</strong> @item.Precio €</p>
+                            <div class="d-flex justify-content-between">
+
+                                <a asp-action="Favoritos" asp-route-idEliminar="@item.IdCubo" class="btn btn-danger btn-sm">Eliminar de favoritos</a>
+                            </div>
+                            <div class="mt-3 text-center">
+                                <a asp-action="AddToCart" asp-route-id="@item.IdCubo" class="btn btn-success btn-sm w-100">
+                                    Añadir al Carrito
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+   } else {
+        <div class="alert alert-warning" role="alert">
+            No hay cubos en favoritos
+        </div>
+   }
+</div>
+

@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using MvcCubos.Helpers;
 using MvcCubos.Models;
 using MvcCubos.Repositories;
 using MvcNetCoreUtilidades.Helpers;
@@ -9,15 +11,35 @@ namespace MvcCubos.Controllers
     {
         private RepositoryCubos _repository;
         private HelperPathProvider helperPath;
+        private IMemoryCache memoryCache;
 
-        public CubosController(RepositoryCubos repository, HelperPathProvider helperPath)
+        public CubosController(RepositoryCubos repository, HelperPathProvider helperPath, IMemoryCache memoryCache)
         {
             this._repository = repository;
             this.helperPath = helperPath;
+            this.memoryCache = memoryCache;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? idFavorito)
         {
+
+            if (idFavorito != null)
+            {
+                List<Cubo> favoritos;
+
+                if (!this.memoryCache.TryGetValue("favoritos", out favoritos))
+                {
+                    favoritos = new List<Cubo>();
+                }
+                else
+                {
+                    favoritos = this.memoryCache.Get<List<Cubo>>("favoritos");
+                }
+
+                Cubo cubo = await this._repository.FindCuboAsync(idFavorito.Value);
+                favoritos.Add(cubo);
+                this.memoryCache.Set("favoritos", favoritos);
+            }
             List<Cubo> cubos = await this._repository.GetCubosAsync();
             return View(cubos);
         }
@@ -34,7 +56,7 @@ namespace MvcCubos.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(int idCubo, string nombre, string modelo, string marca, IFormFile imagen, int precio )
+        public async Task<IActionResult> Create(int idCubo, string nombre, string modelo, string marca, IFormFile imagen, int precio)
         {
             string fileName = imagen.FileName;
             string path = this.helperPath.MapPath(fileName, Folders.Images);
@@ -57,11 +79,11 @@ namespace MvcCubos.Controllers
             return RedirectToAction("Index");
         }
 
-        
+
         public async Task<IActionResult> Edit(int id)
         {
-            
-            Cubo cubo = await this._repository.FindCuboAsync(id);            
+
+            Cubo cubo = await this._repository.FindCuboAsync(id);
             return View(cubo);
         }
 
@@ -101,5 +123,88 @@ namespace MvcCubos.Controllers
 
             return RedirectToAction("Index");
         }
+
+        public async Task<IActionResult> Delete(int id)
+        {
+            await this._repository.DeleteCuboAsync(id);
+            return RedirectToAction("Index");
+        }
+
+        public IActionResult Favoritos(int? idEliminar)
+        {
+            if (idEliminar.HasValue) { 
+                List<Cubo> favoritos = this.memoryCache.Get<List<Cubo>>("favoritos");
+
+                Cubo cubo = favoritos.Find(c => c.IdCubo == idEliminar.Value);
+                favoritos.Remove(cubo);
+
+                if (favoritos.Count == 0) {
+                    this.memoryCache.Remove("favoritos");
+                } else
+                {
+                    this.memoryCache.Set("favoritos", favoritos);
+                }
+            }
+            return View();
+        }
+
+        public async Task<IActionResult> AddToCart(int id)
+        {
+            var carrito = HttpContext.Session.GetObjectFromJson<List<Compra>>("Carrito") ?? new List<Compra>();
+
+            var cubo = await this._repository.FindCuboAsync(id);
+            if (cubo == null)
+            {
+                TempData["ErrorMessage"] = "Cubo no encontrado.";
+                return RedirectToAction("Index");
+            }
+
+            var compraExistente = carrito.FirstOrDefault(c => c.IdCubo == id);
+            if (compraExistente != null)
+            {
+                compraExistente.Cantidad++;
+            }
+            else
+            {
+                carrito.Add(new Compra
+                {
+                    IdCubo = id,
+                    Cantidad = 1,
+                    Precio = cubo.Precio,
+                    FechaPedido = DateTime.Now
+                });
+            }
+
+            HttpContext.Session.SetObjectAsJson("Carrito", carrito);
+
+            TempData["SuccessMessage"] = "Cubo añadido al carrito.";
+
+            return RedirectToAction("Index");
+        }
+        public IActionResult Carrito()
+        {
+            var carrito = HttpContext.Session.GetObjectFromJson<List<Compra>>("Carrito") ?? new List<Compra>();
+            return View(carrito);
+        }
+
+        [HttpPost]
+        public IActionResult RemoveFromCart(int id)
+        {
+            var carrito = HttpContext.Session.GetObjectFromJson<List<Compra>>("Carrito") ?? new List<Compra>();
+
+            var compra = carrito.FirstOrDefault(c => c.IdCubo == id);
+            if (compra != null)
+            {
+                carrito.Remove(compra);
+            }
+
+            HttpContext.Session.SetObjectAsJson("Carrito", carrito);
+
+            TempData["SuccessMessage"] = "Producto eliminado del carrito.";
+
+            return RedirectToAction("Carrito");
+        }
+
     }
 }
+
